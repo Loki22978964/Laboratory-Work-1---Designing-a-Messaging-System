@@ -21,7 +21,7 @@ graph TD
     MsgService --> Queue{Delivery Queue}
     Queue --> FanOut[Fan-out Worker]
     
-    FanOut --> RoomService : "Get members list"
+    FanOut -->|Get members list| RoomService
     FanOut --> StatusDB[(Delivery Status DB)]
     FanOut --> PushService[Push / WebSocket Service]
     
