@@ -8,7 +8,7 @@ Focus: Scaling delivery logic & Per-recipient status tracking
 To scale group messaging, we utilize the Fan-out pattern.
 This allows the primary API to respond quickly to the sender while background workers handle distribution to every group member.
 
-mermai```
+```mermaid
 graph TD
     Client[Client App] --> API[API Gateway]
     API --> AuthService[Auth Service]
@@ -33,6 +33,7 @@ Scenario
 
 User A sends a message to a group. The system immediately confirms receipt and then asynchronously distributes it to other participants (User B, C, D, …).
 
+```mermaid
 sequenceDiagram
     participant A as User A (Sender)
     participant API as API Gateway
@@ -58,6 +59,7 @@ sequenceDiagram
         FO->>FO: createDeliveryRecord(MsgID, MemberID, status='pending')
         FO->>B: Deliver via WebSocket/Push
     end
+```
 
 🔄 Part 3 — State Diagram
 Object
@@ -65,6 +67,7 @@ Object
 GroupMessageStatus — message state relative to a specific recipient.
 We track the message state per participant to determine who has received or read it.
 
+```mermaid
 stateDiagram-v2
     [*] --> Pending: Task created in Queue
     Pending --> Delivering: Attempting connection
@@ -79,7 +82,7 @@ stateDiagram-v2
     Retrying --> Delivering
     
     Read --> [*]
-
+```
 
 📚 Part 4 — ADR (Architecture Decision Record)
 ADR-004: Using Fan-out on Write for Group Messaging
