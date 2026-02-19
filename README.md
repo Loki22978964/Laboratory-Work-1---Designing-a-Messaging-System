@@ -8,6 +8,7 @@ Focus: Scaling delivery logic & Per-recipient status tracking
 To scale group messaging, we utilize the Fan-out pattern.
 This allows the primary API to respond quickly to the sender while background workers handle distribution to every group member.
 
+mermai```
 graph TD
     Client[Client App] --> API[API Gateway]
     API --> AuthService[Auth Service]
@@ -25,7 +26,7 @@ graph TD
     FanOut --> PushService[Push / WebSocket Service]
     
     PushService --> Recipient[Recipient Clients]
-
+```
     
 🔁 Part 2 — Sequence Diagram
 Scenario
