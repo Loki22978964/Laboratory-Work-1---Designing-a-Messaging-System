@@ -41,7 +41,7 @@ graph LR
     Queue -->|Async processing| Delivery
     Delivery -->|Deliver messages| Client
 
-    🧱 Components and Responsibilities
+🧱 Components and Responsibilities
 Client (Web / Mobile)
 Responsibilities:
 
