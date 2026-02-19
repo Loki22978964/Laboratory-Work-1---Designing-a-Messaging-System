@@ -36,28 +36,19 @@ User A sends a message to a group. The system immediately confirms receipt and t
 ```mermaid
 sequenceDiagram
     participant A as User A (Sender)
-    participant API as API Gateway
-    participant MS as Message Service
-    participant Q as Message Queue
-    participant FO as Fan-out Worker
-    participant RS as Room Service
-    participant B as User B (Recipient)
+    participant Server as Messaging System
+    participant B as User B (Online)
+    participant C as User C (Offline)
 
-    A->>API: POST /groups/{id}/messages
-    API->>MS: saveMessage(groupId, content)
-    MS-->>API: 202 Accepted (MsgID: 101)
-    API-->>A: Confirm Sent (Success)
+    A->>Server: Send message to Group
+    Server-->>A: OK (Message Saved)
     
-    Note over MS,Q: Asynchronous Fan-out Process
-    MS->>Q: Enqueue Task (MsgID: 101, GroupID: 5)
+    Note over Server: System finds all group members
     
-    Q->>FO: Process Message 101
-    FO->>RS: getGroupMembers(GroupID: 5)
-    RS-->>FO: List: [User B, User C, User D...]
+    Server->>B: Push via WebSocket (Instant)
+    Server->>C: Push Notification (Stored for later)
     
-    loop For each group member
-        FO->>FO: createDeliveryRecord(MsgID, MemberID, status='pending')
-        FO->>B: Deliver via WebSocket/Push
+    Note over Server: Update delivery status for each
     end
 ```
 
