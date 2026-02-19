@@ -75,46 +75,32 @@ stateDiagram-v2
 ```
 
 📚 Part 4 — ADR (Architecture Decision Record)
-ADR-004: Using Fan-out on Write for Group Messaging
 
-Status: Accepted
+### ADR-004: Fan-out on Write for Group Messaging
 
-Context
+**Status:** Accepted
 
-In a group chat system, a single message must be delivered to 2–10,000+ participants.
+### Context
+In a group chat system, a single message must be delivered to **2–10,000+** participants.
 
 We need to ensure:
+- **Low latency** for the sender
+- **Per-recipient delivery/read tracking**
 
-Low latency for the sender
+### Decision
+We implement a **Fan-out on Write** strategy using a message queue:
+- **Message Service** persists the original message and enqueues a *fan-out* task
+- **Fan-out Worker** consumes the task, retrieves the group members list, and creates individual delivery records
+- **Statuses** are stored in a NoSQL DB (e.g., DynamoDB, Cassandra) using a composite key *(message_id + user_id)* for scalable writes
 
-Ability to track delivered/read status individually
+### Alternatives
+- **Fan-out on Read**: clients pull messages instead of pushing
+  - Hard to implement real-time delivery and read receipts
+- **Synchronous fan-out**: the sender request distributes messages
+  - Timeout risk for large groups (500+ users)
 
-Decision
-
-We implement a Fan-out on Write strategy using a message queue:
-
-Message Service persists the original message and enqueues a "fan-out" task
-
-Fan-out Worker consumes the task, retrieves the group member list, and creates individual delivery records
-
-Statuses stored in NoSQL DB (e.g., DynamoDB, Cassandra) using a composite key (message_id + user_id) for scalable writes
-
-Alternatives
-
-Fan-out on Read: Clients pull messages instead of pushing
-
-Hard to implement real-time delivery and read receipts
-
-Synchronous Fan-out: Sender request distributes messages
-
-Timeout risk for large groups (500+ users)
-
-Consequences
-
-Performance: Sender receives immediate confirmation
-
-Reliability: Failed worker → task stays in queue for retry
-
-Data Volume: Status records grow linearly → O(N) per message
-
-Complexity: Requires queue infrastructure (RabbitMQ / Kafka) and workers
+### Consequences
+- **Performance:** sender receives immediate confirmation
+- **Reliability:** failed worker → task stays in queue for retry
+- **Data volume:** status records grow linearly → $O(N)$ per message
+- **Complexity:** requires queue infrastructure (RabbitMQ / Kafka) and workers
