@@ -1,10 +1,6 @@
 🧪 Laboratory Work 1
 Variant 4 — Group Chat
 
-![TypeScript](https://img.shields.io/badge/TypeScript-33.05%25-blue?style=flat-square)
-![PHP](https://img.shields.io/badge/PHP-27.72%25-purple?style=flat-square)
-![C#](https://img.shields.io/badge/C%23-25.52%25-green?style=flat-square)
-
 Focus: Scaling delivery logic & Per-recipient status tracking
 
 🧱 Part 1 — Component Diagram
