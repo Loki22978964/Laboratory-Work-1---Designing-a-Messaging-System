@@ -1,143 +1,57 @@
-# Laboratory Work 1: Designing a Messaging System
+🧪 Laboratory Work 1: Variant 4 — Group ChatFocus: Scaling delivery logic & Per-recipient status tracking.🧱 Part 1 — Component DiagramTo scale group messaging, we utilize the Fan-out pattern. This allows the primary API to respond quickly to the sender while background workers handle the distribution of the message to every group member.Фрагмент кодаgraph TD
+    Client[Client App] --> API[API Gateway]
+    API --> AuthService[Auth Service]
+    API --> RoomService[Room/Group Service]
+    API --> MsgService[Message Service]
+    
+    RoomService --> RoomDB[(Group Metadata DB)]
+    MsgService --> MsgDB[(Message Store)]
+    
+    MsgService --> Queue{Delivery Queue}
+    Queue --> FanOut[Fan-out Worker]
+    
+    FanOut --> RoomService : "Get members list"
+    FanOut --> StatusDB[(Delivery Status DB)]
+    FanOut --> PushService[Push/WebSocket Service]
+    
+    PushService --> Recipient[Recipient Clients]
+🔁 Part 2 — Sequence DiagramScenario: User A sends a message to a group. The system confirms receipt and then asynchronously distributes it to other participants (User B and others).Фрагмент кодаsequenceDiagram
+    participant A as User A (Sender)
+    participant API as API Gateway
+    participant MS as Message Service
+    participant Q as Message Queue
+    participant FO as Fan-out Worker
+    participant RS as Room Service
+    participant B as User B (Recipient)
 
-## Part 1 — Component Diagram (30%)
-
-### Variant 4: Group Chat
-
-**Focus:** Scaling delivery logic
-
----
-
-## 📌 Task
-
-Create a Component Diagram that illustrates:
-
-* system components
-* their specific responsibilities
-* interactions between them
-
----
-
-## 🧩 System Components
-
-* Client (Web / Mobile)
-* Backend API
-* Message Service
-* Database
-* Delivery Mechanism (Queue / WebSocket / Push)
-
----
-
-## 📊 Component Diagram (Mermaid)
-
-```mermaid
-graph LR
-    Client[Client<br/>Web / Mobile]
-    API[Backend API]
-    MessageService[Message Service]
-    DB[(Database)]
-    Queue[Message Queue]
-    Delivery[Delivery Mechanism<br/>WebSocket / Push]
-
-    Client -->|Send / Receive messages| API
-    API -->|Forward requests| MessageService
-    MessageService -->|Store messages & metadata| DB
-    MessageService -->|Publish delivery events| Queue
-    Queue -->|Async processing| Delivery
-    Delivery -->|Deliver messages| Client
-```
-
----
-
-## 🧱 Components and Responsibilities
-
-### Client (Web / Mobile)
-
-**Responsibilities:**
-
-* Sends messages to group chats
-* Receives messages from other participants
-* Displays message delivery and read status
-
-**Interactions:**
-
-* Communicates with Backend API via HTTP or WebSocket
-* Receives messages through WebSocket or Push notifications
-
----
-
-### Backend API
-
-**Responsibilities:**
-
-* Serves as the primary entry point to the system
-* Validates incoming requests and authentication
-* Routes messaging operations to the Message Service
-
-**Interactions:**
-
-* Receives requests from the Client
-* Sends commands to the Message Service
-
----
-
-### Message Service
-
-**Responsibilities:**
-
-* Implements core group chat logic
-* Handles fan-out strategy for multiple recipients
-* Manages per-recipient delivery status
-* Publishes message delivery events
-
-**Interactions:**
-
-* Receives requests from the Backend API
-* Persists messages and metadata in the Database
-* Sends delivery events to the Queue
-
----
-
-### Database
-
-**Responsibilities:**
-
-* Stores chat messages and history
-* Stores group membership information
-* Stores per-user delivery and read status
-
-**Interactions:**
-
-* Accessed exclusively by the Message Service
-
----
-
-### Delivery Mechanism (Queue / WebSocket / Push)
-
-**Responsibilities:**
-
-* Processes asynchronous delivery events
-* Delivers messages to online users via WebSocket
-* Sends Push notifications to offline users
-* Improves scalability and fault tolerance
-
-**Interactions:**
-
-* Consumes events from the Queue
-* Sends messages back to the Clients
-
----
-
-## 🔄 Interaction Summary
-
-1. Client sends a message to a group chat
-2. Backend API validates and forwards the request to the Message Service
-3. Message Service stores the message and delivery metadata in the Database
-4. Delivery events are published to a Queue
-5. Delivery mechanism asynchronously delivers messages to all recipients
-
----
-
-## ✅ Conclusion
-
-This component diagram represents a scalable group chat system where messages are delivered to multiple recipients with separate delivery status per user. The use of an asynchronous delivery mechanism ensures high performance and scalability, preventing bottlenecks during heavy group messaging traffic.
+    A->>API: POST /groups/{id}/messages
+    API->>MS: saveMessage(groupId, content)
+    MS-->>API: 202 Accepted (MsgID: 101)
+    API-->>A: Confirm Sent (Success)
+    
+    Note over MS, Q: Asynchronous Fan-out Process
+    MS->>Q: Enqueue Task (MsgID: 101, GroupID: 5)
+    
+    Q->>FO: Process Message 101
+    FO->>RS: getGroupMembers(GroupID: 5)
+    RS-->>FO: List: [User B, User C, User D...]
+    
+    loop For each group member
+        FO->>FO: createDeliveryRecord(MsgID, MemberID, status='pending')
+        FO->>B: Deliver via WebSocket/Push
+    end
+🔄 Part 3 — State DiagramObject: GroupMessageStatus (Message state relative to a specific recipient).In a group chat, we track the message state for each participant individually to determine who has received or read the text.Фрагмент кодаstateDiagram-v2
+    [*] --> Pending: Task created in Queue
+    Pending --> Delivering: Attempting connection
+    
+    state DeliveryProcess {
+        Delivering --> Delivered: Received by device
+        Delivered --> Read: Opened by user
+    }
+    
+    Delivering --> Failed: Connection timeout
+    Failed --> Retrying: Exponential backoff
+    Retrying --> Delivering
+    
+    Read --> [*]
+📚 Part 4 — ADR (Architecture Decision Record)ADR-004: Using Fan-out on Write for Group MessagingStatusAcceptedContextIn a group chat system, a single message must be delivered to multiple participants (ranging from 2 to 10,000+). We need to ensure:Low latency for the sender.The ability to track delivered/read status for each group participant individually.DecisionWe will implement a Fan-out on Write strategy using a message queue:The Message Service only persists the original message and enqueues a "fan-out" task.The Fan-out Worker consumes this task, retrieves the group member list, and creates individual delivery records for each member.Statuses are stored in a NoSQL database (e.g., DynamoDB or Cassandra) using a composite key message_id + user_id to allow high-frequency writes and easy horizontal scaling.AlternativesFan-out on Read: Messages are not actively pushed; clients "pull" updates when entering the chat.Downside: Difficult to implement real-time push notifications and per-user read receipts.Synchronous Fan-out: Distribution happens during the sender's HTTP request.Downside: For large groups (e.g., 500+ members), the sender's request would hang or timeout.ConsequencesPerformance: The sender receives an immediate confirmation.Reliability: If a worker fails, the task remains in the queue for retry.Data Volume: The number of status records grows linearly ($O(N)$), where $N$ is the number of participants.Complexity: Requires additional infrastructure for queues (RabbitMQ/Kafka) and workers.
