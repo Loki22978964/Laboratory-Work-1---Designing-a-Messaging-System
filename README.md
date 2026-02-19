@@ -49,7 +49,6 @@ sequenceDiagram
     Server->>C: Push Notification (Stored for later)
     
     Note over Server: Update delivery status for each
-    end
 ```
 
 🔄 Part 3 — State Diagram
