@@ -32,12 +32,12 @@ Create a Component Diagram that illustrates:
 
 ```mermaid
 graph LR
-    Client[Client<br/>(Web / Mobile)]
+    Client[Client<br/>Web / Mobile]
     API[Backend API]
     MessageService[Message Service]
     DB[(Database)]
     Queue[Message Queue]
-    Delivery[Delivery Mechanism<br/>(WebSocket / Push)]
+    Delivery[Delivery Mechanism<br/>WebSocket / Push]
 
     Client -->|Send / Receive messages| API
     API -->|Forward requests| MessageService
