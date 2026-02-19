@@ -1,31 +1,36 @@
-Laboratory Work 1: Designing a Messaging System
-Part 1 — Component Diagram (30%)
-Variant 4: Group Chat
+# Laboratory Work 1: Designing a Messaging System
 
-Focus: Scaling delivery logic
+## Part 1 — Component Diagram (30%)
 
-📌 Task
+### Variant 4: Group Chat
+
+**Focus:** Scaling delivery logic
+
+---
+
+## 📌 Task
+
 Create a Component Diagram that illustrates:
 
-System components
+* system components
+* their specific responsibilities
+* interactions between them
 
-Their specific responsibilities
+---
 
-Interactions between them
+## 🧩 System Components
 
-🧩 System Components
-Client (Web / Mobile)
+* Client (Web / Mobile)
+* Backend API
+* Message Service
+* Database
+* Delivery Mechanism (Queue / WebSocket / Push)
 
-Backend API
+---
 
-Message Service
+## 📊 Component Diagram (Mermaid)
 
-Database
-
-Delivery Mechanism (Queue / WebSocket / Push)
-
-📊 Component Diagram (Mermaid)
-
+```mermaid
 graph LR
     Client[Client<br/>(Web / Mobile)]
     API[Backend API]
@@ -40,97 +45,99 @@ graph LR
     MessageService -->|Publish delivery events| Queue
     Queue -->|Async processing| Delivery
     Delivery -->|Deliver messages| Client
+```
 
-🧱 Components and Responsibilities
-Client (Web / Mobile)
-Responsibilities:
+---
 
-Sends messages to group chats.
+## 🧱 Components and Responsibilities
 
-Receives messages from other participants.
+### Client (Web / Mobile)
 
-Displays message delivery and read status.
+**Responsibilities:**
 
-Interactions:
+* Sends messages to group chats
+* Receives messages from other participants
+* Displays message delivery and read status
 
-Communicates with Backend API via HTTP or WebSocket.
+**Interactions:**
 
-Receives messages through WebSocket or Push notifications.
+* Communicates with Backend API via HTTP or WebSocket
+* Receives messages through WebSocket or Push notifications
 
-Backend API
-Responsibilities:
+---
 
-Serves as the primary entry point to the system.
+### Backend API
 
-Validates incoming requests and authentication.
+**Responsibilities:**
 
-Routes messaging operations to the Message Service.
+* Serves as the primary entry point to the system
+* Validates incoming requests and authentication
+* Routes messaging operations to the Message Service
 
-Interactions:
+**Interactions:**
 
-Receives requests from the Client.
+* Receives requests from the Client
+* Sends commands to the Message Service
 
-Sends commands to the Message Service.
+---
 
-Message Service
-Responsibilities:
+### Message Service
 
-Implements core group chat logic.
+**Responsibilities:**
 
-Handles fan-out strategy for multiple recipients.
+* Implements core group chat logic
+* Handles fan-out strategy for multiple recipients
+* Manages per-recipient delivery status
+* Publishes message delivery events
 
-Manages per-recipient delivery status.
+**Interactions:**
 
-Publishes message delivery events.
+* Receives requests from the Backend API
+* Persists messages and metadata in the Database
+* Sends delivery events to the Queue
 
-Interactions:
+---
 
-Receives requests from the Backend API.
+### Database
 
-Persists messages and metadata in the Database.
+**Responsibilities:**
 
-Sends delivery events to the Queue.
+* Stores chat messages and history
+* Stores group membership information
+* Stores per-user delivery and read status
 
-Database
-Responsibilities:
+**Interactions:**
 
-Stores chat messages and history.
+* Accessed exclusively by the Message Service
 
-Stores group membership information.
+---
 
-Stores per-user delivery and read status.
+### Delivery Mechanism (Queue / WebSocket / Push)
 
-Interactions:
+**Responsibilities:**
 
-Accessed exclusively by the Message Service.
+* Processes asynchronous delivery events
+* Delivers messages to online users via WebSocket
+* Sends Push notifications to offline users
+* Improves scalability and fault tolerance
 
-Delivery Mechanism (Queue / WebSocket / Push)
-Responsibilities:
+**Interactions:**
 
-Processes asynchronous delivery events.
+* Consumes events from the Queue
+* Sends messages back to the Clients
 
-Delivers messages to online users via WebSocket.
+---
 
-Sends Push notifications to offline users.
+## 🔄 Interaction Summary
 
-Improves scalability and fault tolerance.
+1. Client sends a message to a group chat
+2. Backend API validates and forwards the request to the Message Service
+3. Message Service stores the message and delivery metadata in the Database
+4. Delivery events are published to a Queue
+5. Delivery mechanism asynchronously delivers messages to all recipients
 
-Interactions:
+---
 
-Consumes events from the Queue.
+## ✅ Conclusion
 
-Sends messages back to the Clients.
-
-🔄 Interaction Summary
-Client sends a message to a group chat.
-
-Backend API validates and forwards the request to the Message Service.
-
-Message Service stores the message and delivery metadata in the Database.
-
-Delivery events are published to a Queue.
-
-Delivery mechanism asynchronously delivers messages to all recipients (online or offline).
-
-✅ Conclusion
 This component diagram represents a scalable group chat system where messages are delivered to multiple recipients with separate delivery status per user. The use of an asynchronous delivery mechanism ensures high performance and scalability, preventing bottlenecks during heavy group messaging traffic.
